@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat con Socket.IO</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+            list-style-type: none;
+            margin: 0;
+            padding-left: 0;
+        }
+
+        .chat-message {
+            margin-bottom: 10px;
+            clear: both;
+            overflow: hidden;
+        }
+
+        .chat-message.sent .message-content {
+            background-color: #dcf8c6;
+            float: right;
+        }
+
+        .chat-message.received .message-content {
+            background-color: #ffffff;
+            float: left;
+        }
+
+        .message-content {
+            border-radius: 10px;
+            padding: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message-content img {
+            max-width: 100px;
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+
+        .message-meta {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 5px;
+            clear: both;
+        }
+
+        .chat-input {
+            padding: 10px;
+            background-color: #f2f2f2;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .chat-input input[type="text"] {
+            width: calc(100% - 70px);
+            padding: 8px;
+            border-radius: 20px;
+            border: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        .chat-input input[type="file"] {
+            display: none;
+        }
+
+        .chat-input button {
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .chat-input button:hover {
+            background-color: #45a049;
+        }
+
+        .chat-input label {
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+            display: inline-block;
+        }
+
+        .chat-input label:hover {
+            background-color: #45a049;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+        function enviarMensaje() {
+            var mensajeInput = document.getElementById('mensaje');
+            var mensaje = mensajeInput.value.trim();
+            var username = document.getElementById('username').value.trim();
+            var foto = document.getElementById('foto').files[0];
+
+            if (mensaje !== '') {
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    var fotoData = event.target.result;
+                    socket.emit('chat message', { message: mensaje, username: username, foto: fotoData });
+                };
+                if (foto) {
+                    reader.readAsDataURL(foto);
+                } else {
+                    socket.emit('chat message', { message: mensaje, username: username, foto: null });
+                }
+                mensajeInput.value = '';
+            }
+            return false;
+        }
+        socket.on('chat message', function(data){
+            mostrarMensaje(data);
+        });
+
+        // Función para mostrar mensajes
+        function mostrarMensaje(data) {
+            var listaMensajes = document.getElementById('lista-mensajes');
+            var mensaje = document.createElement('li');
+            mensaje.classList.add('chat-message');
+            mensaje.classList.add(data.username === document.getElementById('username').value.trim() ? 'sent' : 'received');
+
+            var mensajeContenido = '<div class="message-content">';
+            if (data.foto) {
+                mensajeContenido += '<img src="' + data.foto + '" alt="Foto de perfil">';
+            }
+            mensajeContenido += '<p><span class="username">' + data.username + '</span><br>' + data.message + '</p>';
+            mensajeContenido += '</div>';
+            mensajeContenido += '<div class="message-meta">' + data.time + '</div>';
+
+            mensaje.innerHTML = mensajeContenido;
+
+            listaMensajes.appendChild(mensaje);
+            listaMensajes.scrollTop = listaMensajes.scrollHeight; 
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <ul id="lista-mensajes" class="chat-messages"></ul>
+        <div class="chat-input">
+            <form onsubmit="return enviarMensaje()">
+                <input id="username" type="text" placeholder="Tu nombre" required />
+                <input type="file" id="foto" accept="image/*">
+                <label for="foto">Seleccionar foto</label>
+                <input id="mensaje" type="text" placeholder="Escribe un mensaje..." required />
+                <button>Enviar</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
